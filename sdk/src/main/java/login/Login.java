@@ -53,9 +53,8 @@ public class Login {
 		// in app.properties are the username and password as specified through environment variables
 		try {
 			in = new BufferedReader(new FileReader("target/app.properties"));
-		} catch (FileNotFoundException e1) {
+		} catch (Exception e1) {
 			// errors are contained here because fallback is asking user for the user/pwd
-			e1.printStackTrace();
 		}
 		String line;
 		try {
@@ -69,9 +68,8 @@ public class Login {
 					}
 				}
 			}
-		} catch (IOException e) {
+		} catch (Exception e) {
 			// errors are contained here because fallback is asking user for the user/pwd
-			e.printStackTrace();
 		}
 		if(user_var == null || user_var.equals("undefined") || pwd_var == null || pwd_var.equals("undefined") ){
 			// user and password information is not gotten through environment variables and if these values
