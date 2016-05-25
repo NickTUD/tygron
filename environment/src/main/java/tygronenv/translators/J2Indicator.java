@@ -32,11 +32,18 @@ public class J2Indicator implements Java2Parameter<Indicator> {
 		if (value == null) {
 			value = 0.0;
 		}
+		double[] targets = indicator.getTargets(1);
+		double target = 0.0;
+		if (targets == null || targets.length == 0) {
+		    target = indicator.getTarget();
+		} else {
+		    target = targets[0];
+		}
 		
 		return new Parameter[] {new Function("indicator",
 				new Numeral(indicator.getID()),
 				new Numeral(value),
-				new Numeral(indicator.getTarget()))};
+				new Numeral(target))};
 	}
 	
 	/**
