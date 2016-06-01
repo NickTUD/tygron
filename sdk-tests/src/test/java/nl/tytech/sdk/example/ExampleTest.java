@@ -40,6 +40,8 @@ import nl.tytech.util.logger.TLogger;
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class ExampleTest {
 
+	private final static String SERVER = "preview.tygron.com";
+
 	private static Integer slotID;
 
 	private static JoinReply reply;
