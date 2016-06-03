@@ -33,8 +33,19 @@ import nl.tytech.util.StringUtils;
  */
 public class J2PopupData implements Java2Parameter<PopupData> {
 
+    /**
+     * Translator for additional translations.
+     */
 	private final Translator translator = Translator.getInstance();
 
+	/**
+	 * Empty constructor.
+	 */
+	public J2PopupData() { }
+
+	/**
+	 * Method to translate the PopupData class.
+	 */
 	@Override
 	public Parameter[] translate(final PopupData popup) throws TranslationException {
 	    String typeOfPopup = null;
@@ -68,6 +79,9 @@ public class J2PopupData implements Java2Parameter<PopupData> {
 		        parPolygon};
 	}
 
+	/**
+	 * Method to return the PopupData class.
+	 */
 	@Override
 	public Class<? extends PopupData> translatesFrom() {
 		return PopupData.class;

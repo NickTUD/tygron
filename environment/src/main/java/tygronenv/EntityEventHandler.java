@@ -162,8 +162,7 @@ public class EntityEventHandler implements EventListenerInterface {
 	 */
 	private <T extends Item> void createPercepts(final ItemMap<T> itemMap, 
 				final EventTypeEnum type) {
-		List<Percept> percepts = createPercepts(itemMap, type, type.name().toLowerCase());
-		addPercepts(type, percepts);
+		createPercepts(itemMap, type, type.name().toLowerCase());
 	}
 
 	/**
@@ -193,6 +192,7 @@ public class EntityEventHandler implements EventListenerInterface {
 		if (parameters != null) {
 			percepts.add(new Percept(perceptname, parameters));
 		}
+		addPercepts(type, percepts);
 		return percepts;
 		
 	}
