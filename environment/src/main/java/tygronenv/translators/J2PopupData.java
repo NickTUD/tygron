@@ -12,6 +12,9 @@ import eis.iilang.Parameter;
 import eis.iilang.ParameterList;
 import nl.tytech.core.client.event.EventManager;
 import nl.tytech.core.net.serializable.MapLink;
+import nl.tytech.core.structure.ItemMap;
+import nl.tytech.data.engine.item.ActionLog;
+import nl.tytech.data.engine.item.Building;
 import nl.tytech.data.engine.item.PopupData;
 import nl.tytech.data.engine.item.SpecialOption;
 import nl.tytech.data.engine.item.SpecialOption.Type;
@@ -40,21 +43,28 @@ public class J2PopupData implements Java2Parameter<PopupData> {
 	@Override
 	public Parameter[] translate(final PopupData popup) throws TranslationException {
 	    String typeOfPopup = null;
+	    //@SuppressWarnings("unused")
+		ParameterList actionLogIds = new ParameterList();
+	    
 	    if (popup.getContentMapLink() == MapLink.SPECIAL_OPTIONS) {
 	        SpecialOption specialOption = EventManager.getItem(MapLink.SPECIAL_OPTIONS, popup.getContentLinkID());
 	        Type optionType = specialOption.getType();
 	        typeOfPopup = optionType.name();
 	    } else if (popup.getContentMapLink() == MapLink.BUILDINGS) {
 	        typeOfPopup = "PERMIT";
+	        actionLogIds = getActionLogIds(popup);
+		    
 	    } else {
 	        typeOfPopup = "POPUP";
 	    }
+
 		return new Parameter[] {new Function("request", new Identifier(popup.getType().name()),
 		        new Identifier(typeOfPopup), new Numeral(popup.getID()),
 		        new Numeral(popup.getContentLinkID()),
 		        translator.translate2Parameter(popup.getMultiPolygon())[0],
 				getVisibleForStakeholderIDs(popup.getVisibleForStakeholderIDs()),
-				translator.translate2Parameter(popup.getAnswers())[0]) };
+				translator.translate2Parameter(popup.getAnswers())[0]),
+				actionLogIds};
 	}
 
 	/**
@@ -76,5 +86,19 @@ public class J2PopupData implements Java2Parameter<PopupData> {
 	        parVisibleList.add(new Numeral(id));
 	    }
 	    return parVisibleList;
+	}
+	
+	private ParameterList getActionLogIds(PopupData popup) {
+		ParameterList correctActionLogIDs = new ParameterList();
+		MapLink contentMapLink = popup.getContentMapLink();
+	    Building building = EventManager.getItem(contentMapLink, popup.getContentLinkID());
+	    
+	    ItemMap<ActionLog > actionLogs= EventManager.getItemMap(MapLink.ACTION_LOGS);
+	    for(ActionLog actionlog : actionLogs){
+	         if(actionlog.getBuildingIDs().contains(building.getID())){
+	        	 correctActionLogIDs.add(new Numeral(actionlog.getID()));
+	         }
+	    }
+		return correctActionLogIDs;
 	}
 }
