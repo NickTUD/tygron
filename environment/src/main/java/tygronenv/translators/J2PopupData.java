@@ -1,6 +1,9 @@
 package tygronenv.translators;
 
+import java.text.ParseException;
 import java.util.List;
+
+import com.vividsolutions.jts.geom.MultiPolygon;
 
 import eis.eis2java.exception.TranslationException;
 import eis.eis2java.translation.Java2Parameter;
@@ -16,12 +19,18 @@ import nl.tytech.core.structure.ItemMap;
 import nl.tytech.data.engine.item.ActionLog;
 import nl.tytech.data.engine.item.Building;
 import nl.tytech.data.engine.item.PopupData;
+import nl.tytech.data.engine.item.Setting;
 import nl.tytech.data.engine.item.SpecialOption;
 import nl.tytech.data.engine.item.SpecialOption.Type;
+import nl.tytech.locale.TCurrency;
+import nl.tytech.locale.unit.UnitSystem;
+import nl.tytech.locale.unit.UnitSystemType;
+import nl.tytech.util.StringUtils;
 
 /**
  * Translate {@link Popup} into request(type, category, contentlinkID,
- * multipolygon, [visibleStakeholderIDs], [answers]).
+ * [visibleStakeholderIDs], [answers], price, multipolygon).
+ * Multipolygon and price are optional.
  * @author W.Pasman
  *
  */
@@ -58,14 +67,27 @@ public class J2PopupData implements Java2Parameter<PopupData> {
 	        typeOfPopup = "POPUP";
 	    }
 
+	    MultiPolygon mpolygon = popup.getMultiPolygon();
+	    Parameter parPolygon = new Identifier("NO_MULTIPOLYGON");
+	    if (mpolygon != null) {
+	        parPolygon = translator.translate2Parameter(mpolygon)[0];
+	    }
+	    Double price = getPriceFromPopup(popup);
+	    Parameter parPrice = new Identifier("NO_PRICE");
+	    if (price != null) {
+	        parPrice = new Numeral(price);
+	    }
+	    
 		return new Parameter[] {new Function("request",
-				new Identifier(popup.getType().name()),
-		        new Identifier(typeOfPopup), new Numeral(popup.getID()),
+		        new Identifier(popup.getType().name()),
+		        new Identifier(typeOfPopup),
+		        new Numeral(popup.getID()),
 		        new Numeral(popup.getContentLinkID()),
-		        translator.translate2Parameter(popup.getMultiPolygon())[0],
 				getVisibleForStakeholderIDs(popup.getVisibleForStakeholderIDs()),
 				translator.translate2Parameter(popup.getAnswers())[0]),
-				actionLogIds};
+				actionLogIds,
+				parPrice,
+		        parPolygon};
 	}
 
 	/**
@@ -109,4 +131,43 @@ public class J2PopupData implements Java2Parameter<PopupData> {
 	    }
 		return correctActionLogIDs;
 	}
+
+	/**
+	 * Method to get the price from the PopupData.
+	 * @param popupData PopupData to get the price from.
+	 * @return Double price.
+	 */
+	public Double getPriceFromPopup(final PopupData popupData) {
+        Setting unitSystemSetting = EventManager.getItem(MapLink.SETTINGS, Setting.Type.MEASUREMENT_SYSTEM_TYPE);
+        UnitSystemType type = unitSystemSetting.getEnumValue(UnitSystemType.class);
+        UnitSystem unitSystem = type.getImpl();
+        Setting currency = EventManager.getItem(MapLink.SETTINGS, Setting.Type.CURRENCY);
+        TCurrency tcurrency = currency.getEnumValue(TCurrency.class);
+
+        char decimalSeperator = '.';
+        if (type == UnitSystemType.SI) {
+            decimalSeperator = ',';
+        }
+
+        String text = popupData.getText();
+        String[] split = text.split(tcurrency.getCurrencyCharacter() + StringUtils.WHITESPACE);
+        if (split.length == 2) {
+            String numberString = split[1];
+            int i = 0;
+            for (; i < numberString.length(); ++i) {
+                if (numberString.charAt(i) == decimalSeperator) {
+                    break;
+                }
+            }
+            String result = numberString.substring(0, i);
+
+            try {
+                return unitSystem.parseDouble(result);
+            } catch (ParseException e) {
+                return null;
+            }
+        }
+
+        return null;
+    }
 }
