@@ -53,7 +53,7 @@ public class J2PopupData implements Java2Parameter<PopupData> {
 	public Parameter[] translate(final PopupData popup) throws TranslationException {
 	    String typeOfPopup = null;
 		ParameterList actionLogIds = new ParameterList();
-	    
+
 	    if (popup.getContentMapLink() == MapLink.SPECIAL_OPTIONS) {
 	        SpecialOption specialOption =
 	        		EventManager.getItem(MapLink.SPECIAL_OPTIONS, popup.getContentLinkID());
@@ -62,7 +62,7 @@ public class J2PopupData implements Java2Parameter<PopupData> {
 	    } else if (popup.getContentMapLink() == MapLink.BUILDINGS) {
 	        typeOfPopup = "PERMIT";
 	        actionLogIds = getActionLogIds(popup);
-		    
+
 	    } else {
 	        typeOfPopup = "POPUP";
 	    }
@@ -77,7 +77,7 @@ public class J2PopupData implements Java2Parameter<PopupData> {
 	    if (price != null) {
 	        parPrice = new Numeral(price);
 	    }
-	    
+
 		return new Parameter[] {new Function("request",
 		        new Identifier(popup.getType().name()),
 		        new Identifier(typeOfPopup),
@@ -110,19 +110,18 @@ public class J2PopupData implements Java2Parameter<PopupData> {
 	    }
 	    return parVisibleList;
 	}
-	
+
 	/**
 	 * Method to find out to which action logs
 	 * have a connection to a permit related popup.
-	 * 
 	 * @param popup the request to which actionlogs will be linked
 	 * @return a list containing the revelant action log IDs
 	 */
-	private ParameterList getActionLogIds(PopupData popup) {
+	private ParameterList getActionLogIds(final PopupData popup) {
 		ParameterList correctActionLogIDs = new ParameterList();
 		MapLink contentMapLink = popup.getContentMapLink();
 	    Building building = EventManager.getItem(contentMapLink, popup.getContentLinkID());
-	    
+
 	    ItemMap<ActionLog> actionLogs = EventManager.getItemMap(MapLink.ACTION_LOGS);
 	    for (ActionLog actionlog : actionLogs) {
 	         if (actionlog.getBuildingIDs().contains(building.getID())) {
