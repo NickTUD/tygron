@@ -1,5 +1,10 @@
 package tygronenv.translators;
 
+import java.text.ParseException;
+import java.util.List;
+
+import com.vividsolutions.jts.geom.MultiPolygon;
+
 import eis.eis2java.exception.TranslationException;
 import eis.eis2java.translation.Java2Parameter;
 import eis.eis2java.translation.Translator;
@@ -7,12 +12,22 @@ import eis.iilang.Function;
 import eis.iilang.Identifier;
 import eis.iilang.Numeral;
 import eis.iilang.Parameter;
-import nl.tytech.data.engine.item.Building;
+import eis.iilang.ParameterList;
+import nl.tytech.core.client.event.EventManager;
+import nl.tytech.core.net.serializable.MapLink;
 import nl.tytech.data.engine.item.PopupData;
+import nl.tytech.data.engine.item.Setting;
+import nl.tytech.data.engine.item.SpecialOption;
+import nl.tytech.data.engine.item.SpecialOption.Type;
+import nl.tytech.locale.TCurrency;
+import nl.tytech.locale.unit.UnitSystem;
+import nl.tytech.locale.unit.UnitSystemType;
+import nl.tytech.util.StringUtils;
 
 /**
- * Translate {@link Building} into building(ID, name, [categories], timestate).
- * 
+ * Translate {@link Popup} into request(type, category, contentlinkID,
+ * [visibleStakeholderIDs], [answers], price, multipolygon).
+ * Multipolygon and price are optional.
  * @author W.Pasman
  *
  */
@@ -21,10 +36,36 @@ public class J2PopupData implements Java2Parameter<PopupData> {
 	private final Translator translator = Translator.getInstance();
 
 	@Override
-	public Parameter[] translate(PopupData b) throws TranslationException {
-
-		return new Parameter[] { new Function("request", new Identifier(b.getType().toString()), new Numeral(b.getID()),
-				translator.translate2Parameter(b.getAnswers())[0]) };
+	public Parameter[] translate(final PopupData popup) throws TranslationException {
+	    String typeOfPopup = null;
+	    if (popup.getContentMapLink() == MapLink.SPECIAL_OPTIONS) {
+	        SpecialOption specialOption = EventManager.getItem(MapLink.SPECIAL_OPTIONS, popup.getContentLinkID());
+	        Type optionType = specialOption.getType();
+	        typeOfPopup = optionType.name();
+	    } else if (popup.getContentMapLink() == MapLink.BUILDINGS) {
+	        typeOfPopup = "PERMIT";
+	    } else {
+	        typeOfPopup = "POPUP";
+	    }
+	    MultiPolygon mpolygon = popup.getMultiPolygon();
+	    Parameter parPolygon = new Identifier("NO_MULTIPOLYGON");
+	    if (mpolygon != null) {
+	        parPolygon = translator.translate2Parameter(mpolygon)[0];
+	    }
+	    Double price = getPriceFromPopup(popup);
+	    Parameter parPrice = new Identifier("NO_PRICE");
+	    if (price != null) {
+	        parPrice = new Numeral(price);
+	    }
+		return new Parameter[] {new Function("request",
+		        new Identifier(popup.getType().name()),
+		        new Identifier(typeOfPopup),
+		        new Numeral(popup.getID()),
+		        new Numeral(popup.getContentLinkID()),
+				getVisibleForStakeholderIDs(popup.getVisibleForStakeholderIDs()),
+				translator.translate2Parameter(popup.getAnswers())[0]),
+		        parPrice,
+		        parPolygon};
 	}
 
 	@Override
@@ -32,4 +73,55 @@ public class J2PopupData implements Java2Parameter<PopupData> {
 		return PopupData.class;
 	}
 
+	/**
+	 * Method to change the visibleStakeholderID list into a ParameterList.
+	 * @param visibleList list of stakeholderIDs.
+	 * @return ParameterList of shIDs.
+	 */
+	public ParameterList getVisibleForStakeholderIDs(final List<Integer> visibleList) {
+	    ParameterList parVisibleList = new ParameterList();
+	    for (Integer id : visibleList) {
+	        parVisibleList.add(new Numeral(id));
+	    }
+	    return parVisibleList;
+	}
+
+	/**
+	 * Method to get the price from the PopupData.
+	 * @param popupData PopupData to get the price from.
+	 * @return Double price.
+	 */
+	public Double getPriceFromPopup(final PopupData popupData) {
+        Setting unitSystemSetting = EventManager.getItem(MapLink.SETTINGS, Setting.Type.MEASUREMENT_SYSTEM_TYPE);
+        UnitSystemType type = unitSystemSetting.getEnumValue(UnitSystemType.class);
+        UnitSystem unitSystem = type.getImpl();
+        Setting currency = EventManager.getItem(MapLink.SETTINGS, Setting.Type.CURRENCY);
+        TCurrency tcurrency = currency.getEnumValue(TCurrency.class);
+
+        char decimalSeperator = '.';
+        if (type == UnitSystemType.SI) {
+            decimalSeperator = ',';
+        }
+
+        String text = popupData.getText();
+        String[] split = text.split(tcurrency.getCurrencyCharacter() + StringUtils.WHITESPACE);
+        if (split.length == 2) {
+            String numberString = split[1];
+            int i = 0;
+            for (; i < numberString.length(); ++i) {
+                if (numberString.charAt(i) == decimalSeperator) {
+                    break;
+                }
+            }
+            String result = numberString.substring(0, i);
+
+            try {
+                return unitSystem.parseDouble(result);
+            } catch (ParseException e) {
+                return null;
+            }
+        }
+
+        return null;
+    }
 }
