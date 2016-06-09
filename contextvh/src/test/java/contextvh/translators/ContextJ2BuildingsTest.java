@@ -9,6 +9,8 @@ import eis.iilang.Function;
 import eis.iilang.Parameter;
 import nl.tytech.data.engine.item.Building;
 import nl.tytech.data.engine.serializable.Category;
+import nl.tytech.data.engine.serializable.TimeState;
+
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.powermock.api.mockito.PowerMockito;
@@ -16,6 +18,7 @@ import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
 import tygronenv.translators.J2Category;
 import tygronenv.translators.J2MultiPolygon;
+import tygronenv.translators.J2TimeState;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -30,7 +33,7 @@ import static org.mockito.Mockito.verify;
  * In package tygronenv.translators.
  */
 @RunWith(PowerMockRunner.class)
-@PrepareForTest(Building.class)
+@PrepareForTest({Building.class, TimeState.class})
 public class ContextJ2BuildingsTest {
 
     private Translator translator = Translator.getInstance();
@@ -48,15 +51,19 @@ public class ContextJ2BuildingsTest {
         Collection<Category> categories = Arrays.asList(Category.EDUCATION, Category.BRIDGE);
 
         Building b = PowerMockito.mock(Building.class);
-
+        TimeState tms = PowerMockito.mock(TimeState.class);
+        
         PowerMockito.when(b.getMultiPolygon(any())).thenReturn(mp);
         PowerMockito.when(b.getCategories()).thenReturn(categories);
+        PowerMockito.when(b.getTimeState()).thenReturn(tms);
 
         J2Category j2c = PowerMockito.spy(new J2Category());
         J2MultiPolygon j2mp = PowerMockito.spy(new J2MultiPolygon());
+        J2TimeState j2tm = PowerMockito.spy(new J2TimeState());
         translator.registerJava2ParameterTranslator(new ContextJ2Building());
         translator.registerJava2ParameterTranslator(j2c);
         translator.registerJava2ParameterTranslator(j2mp);
+        translator.registerJava2ParameterTranslator(j2tm);
 
         Parameter[] params = translator.translate2Parameter(b);
         Function func = (Function) params[0];
